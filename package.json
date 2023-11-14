@@ -1,6 +1,6 @@
 {
   "name": "com.fyreflystudios.spritessheetimporter",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "displayName": "Sprite Sheet Animator and Importer",
   "description": "This is a tool to import sprite sheets, slice and animate them!",
   "unity": "2021.1",
