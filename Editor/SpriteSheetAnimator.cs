@@ -136,6 +136,11 @@ public class SpriteSheetAnimator : EditorWindow
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
+
+        //reset file path
+        controllerPath = "Assets/1. Art/Animations";
+        animatorControllerName = "SpriteAnimatorController";
+
     }
 
 
