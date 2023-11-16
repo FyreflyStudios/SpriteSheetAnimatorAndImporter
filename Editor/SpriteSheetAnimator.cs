@@ -13,6 +13,7 @@ public class SpriteSheetAnimator : EditorWindow
     private int columnCount = 0;
     private string controllerPath = "Assets/1. Art/Animations";
     private string animatorControllerName = "SpriteAnimatorController";
+    private bool createSubfolder = false; // Field to store checkbox state
 
     [MenuItem("Tools/Sprite Sheet Animator")]
     public static void ShowWindow()
@@ -49,6 +50,9 @@ public class SpriteSheetAnimator : EditorWindow
             controllerPath = EditorGUILayout.TextField("Controller Path", controllerPath);
             animatorControllerName = EditorGUILayout.TextField("Animator Controller Name", animatorControllerName);
 
+            createSubfolder = EditorGUILayout.Toggle("Create Subfolder", createSubfolder);
+
+
             if (GUILayout.Button("Generate Animations"))
             {
                 GenerateAnimations();
@@ -76,6 +80,17 @@ public class SpriteSheetAnimator : EditorWindow
         }
 
         string filePath = AssetDatabase.GetAssetPath(spriteSheet);
+
+        if (createSubfolder)
+        {
+            string subFolderPath = Path.Combine(controllerPath, animatorControllerName);
+            if (!Directory.Exists(subFolderPath))
+            {
+                Directory.CreateDirectory(subFolderPath);
+            }
+            // Update controllerPath to the new subfolder path
+            controllerPath = subFolderPath;
+        }
 
         // Slice the sprite sheet
         // Slice the sprite sheet
@@ -132,7 +147,6 @@ public class SpriteSheetAnimator : EditorWindow
             return null;
         }
 
-        // Load the Texture
         Texture2D spriteSheet = AssetDatabase.LoadAssetAtPath<Texture2D>(filePath);
         if (spriteSheet == null)
         {
@@ -140,24 +154,53 @@ public class SpriteSheetAnimator : EditorWindow
             return null;
         }
 
-        // Assuming spriteSheet is not null, and we know rows and columns
-        List<Sprite> sprites = new List<Sprite>();
-        float spriteWidth = spriteSheet.width / columns;
-        float spriteHeight = spriteSheet.height / rows;
+        string assetPath = AssetDatabase.GetAssetPath(spriteSheet);
+        TextureImporter textureImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
 
-        for (int r = 0; r < rows; r++)
+        if (textureImporter != null)
         {
-            for (int c = 0; c < columns; c++)
+            textureImporter.spriteImportMode = SpriteImportMode.Multiple;
+
+            var spriteData = new List<SpriteMetaData>();
+            float spriteWidth = spriteSheet.width / columns;
+            float spriteHeight = spriteSheet.height / rows;
+
+            for (int r = 0; r < rows; r++)
             {
-                Rect spriteRect = new Rect(c * spriteWidth, (rows - r - 1) * spriteHeight, spriteWidth, spriteHeight);
-                Sprite newSprite = Sprite.Create(spriteSheet, spriteRect, new Vector2(0.5f, 0.5f));
-                newSprite.name = $"{Path.GetFileNameWithoutExtension(filePath)}_r{r}_c{c}";
-                sprites.Add(newSprite);
+                for (int c = 0; c < columns; c++)
+                {
+                    SpriteMetaData metaData = new SpriteMetaData
+                    {
+                        pivot = new Vector2(0.5f, 0.5f),
+                        name = $"{Path.GetFileNameWithoutExtension(filePath)}_r{r}_c{c}",
+                        rect = new Rect(c * spriteWidth, spriteSheet.height - (r + 1) * spriteHeight, spriteWidth, spriteHeight)
+                    };
+                    spriteData.Add(metaData);
+                }
+            }
+
+            textureImporter.spritesheet = spriteData.ToArray();
+            AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
+        }
+
+        // Need to reload the asset to get the new sprites
+        AssetDatabase.Refresh();
+        spriteSheet = AssetDatabase.LoadAssetAtPath<Texture2D>(filePath);
+
+        string spriteSheetName = spriteSheet.name;
+        List<Sprite> sprites = new List<Sprite>();
+        foreach (Object o in AssetDatabase.LoadAllAssetsAtPath(assetPath))
+        {
+            if (o is Sprite sprite && sprite.texture.name == spriteSheetName)
+            {
+                sprites.Add(sprite);
             }
         }
 
         return sprites.ToArray();
     }
+
+
 
     AnimationClip GenerateAnimationClip(Sprite[] sprites, int startIndex, int count, string directory, string animationName)
     {
