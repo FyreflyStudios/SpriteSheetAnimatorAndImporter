@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEditor;
 using UnityEditor.Animations;
 using System.IO;
@@ -23,6 +24,7 @@ public class SpriteSheetAnimator : EditorWindow
     private bool createSubfolder = false;
     private bool useManualAnimations = false;
     private List<AnimationData> animations = new List<AnimationData>();
+    private bool useImageComponent = false;
 
     private List<MultipleSheetAnimationData> multipleSheetAnimations = new List<MultipleSheetAnimationData>();
 
@@ -35,6 +37,8 @@ public class SpriteSheetAnimator : EditorWindow
     void OnGUI()
     {
         currentTab = (Tab)GUILayout.Toolbar((int)currentTab, new string[] { "Single Sheet", "Multiple Sheets" });
+
+        useImageComponent = EditorGUILayout.Toggle("Use Image Component", useImageComponent);
 
         switch (currentTab)
         {
@@ -406,9 +410,9 @@ public class SpriteSheetAnimator : EditorWindow
 
         EditorCurveBinding spriteBinding = new EditorCurveBinding
         {
-            type = typeof(SpriteRenderer),
+            type = useImageComponent ? typeof(Image) : typeof(SpriteRenderer),
             path = "",
-            propertyName = "m_Sprite"
+            propertyName = useImageComponent ? "m_Sprite" : "m_Sprite"
         };
 
         ObjectReferenceKeyframe[] spriteKeyFrames = new ObjectReferenceKeyframe[count];
