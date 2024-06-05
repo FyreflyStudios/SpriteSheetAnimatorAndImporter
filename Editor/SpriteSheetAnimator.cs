@@ -38,8 +38,6 @@ public class SpriteSheetAnimator : EditorWindow
     {
         currentTab = (Tab)GUILayout.Toolbar((int)currentTab, new string[] { "Single Sheet", "Multiple Sheets" });
 
-        useImageComponent = EditorGUILayout.Toggle("Use Image Component", useImageComponent);
-
         switch (currentTab)
         {
             case Tab.SingleSheet:
@@ -58,6 +56,7 @@ public class SpriteSheetAnimator : EditorWindow
         spriteSheet = (Texture2D)EditorGUILayout.ObjectField("Sprite Sheet", spriteSheet, typeof(Texture2D), false);
         EditorGUILayout.Space();
 
+        useImageComponent = EditorGUILayout.Toggle("Use Image Component", useImageComponent);
         useManualAnimations = EditorGUILayout.Toggle("Use Manual Animations", useManualAnimations);
         rowCount = EditorGUILayout.IntField("Number of Rows", rowCount);
         rowCount = Mathf.Max(1, rowCount);
@@ -111,6 +110,7 @@ public class SpriteSheetAnimator : EditorWindow
             animData.RowCount = Mathf.Max(1, animData.RowCount);
             animData.ColumnCount = EditorGUILayout.IntField("Number of Columns", animData.ColumnCount);
             animData.ColumnCount = Mathf.Max(1, animData.ColumnCount);
+            animData.IsLooping = EditorGUILayout.Toggle("Looping", animData.IsLooping);
 
             if (GUILayout.Button("Remove"))
             {
@@ -121,6 +121,8 @@ public class SpriteSheetAnimator : EditorWindow
         }
 
         EditorGUILayout.Space();
+
+        useImageComponent = EditorGUILayout.Toggle("Use Image Component", useImageComponent);
         controllerPath = EditorGUILayout.TextField("Controller Path", controllerPath);
         animatorControllerName = EditorGUILayout.TextField("Animator Controller Name", animatorControllerName);
         createSubfolder = EditorGUILayout.Toggle("Create Subfolder", createSubfolder);
@@ -143,6 +145,15 @@ public class SpriteSheetAnimator : EditorWindow
             for (int i = 0; i < rowCount; i++)
             {
                 animationNames[i] = EditorGUILayout.TextField($"Animation {i + 1} Name", animationNames[i]);
+                bool isLooping = EditorGUILayout.Toggle("Looping", animations.Count > i ? animations[i].IsLooping : false);
+                if (animations.Count > i)
+                {
+                    animations[i].IsLooping = isLooping;
+                }
+                else
+                {
+                    animations.Add(new AnimationData { IsLooping = isLooping });
+                }
             }
         }
     }
@@ -162,6 +173,7 @@ public class SpriteSheetAnimator : EditorWindow
                 animations[i].Name = EditorGUILayout.TextField("Name", animations[i].Name);
                 animations[i].StartFrame = EditorGUILayout.IntField("Start Frame", animations[i].StartFrame);
                 animations[i].EndFrame = EditorGUILayout.IntField("End Frame", animations[i].EndFrame);
+                animations[i].IsLooping = EditorGUILayout.Toggle("Looping", animations[i].IsLooping);
                 if (GUILayout.Button("Remove"))
                 {
                     animations.RemoveAt(i);
@@ -227,7 +239,7 @@ public class SpriteSheetAnimator : EditorWindow
                 continue;
             }
 
-            AnimationClip clip = GenerateAnimationClip(sprites, adjustedStartFrame, count, controllerPath, anim.Name);
+            AnimationClip clip = GenerateAnimationClip(sprites, adjustedStartFrame, count, controllerPath, anim.Name, anim.IsLooping);
             AnimatorState state = controller.layers[0].stateMachine.AddState(anim.Name);
             state.motion = clip;
         }
@@ -275,7 +287,7 @@ public class SpriteSheetAnimator : EditorWindow
                 continue;
             }
 
-            AnimationClip clip = GenerateAnimationClip(sprites, spriteStartIndex, spriteCount, controllerPath, animationNames[i]);
+            AnimationClip clip = GenerateAnimationClip(sprites, spriteStartIndex, spriteCount, controllerPath, animationNames[i], animations[i].IsLooping);
             AnimatorState state = controller.layers[0].stateMachine.AddState(animationNames[i]);
             state.motion = clip;
         }
@@ -319,7 +331,7 @@ public class SpriteSheetAnimator : EditorWindow
                 continue;
             }
 
-            AnimationClip clip = GenerateAnimationClip(sprites, 0, sprites.Length, controllerPath, animData.Name);
+            AnimationClip clip = GenerateAnimationClip(sprites, 0, sprites.Length, controllerPath, animData.Name, animData.IsLooping);
             AnimatorState state = controller.layers[0].stateMachine.AddState(animData.Name);
             state.motion = clip;
         }
@@ -401,7 +413,7 @@ public class SpriteSheetAnimator : EditorWindow
         return sprites.ToArray();
     }
 
-    AnimationClip GenerateAnimationClip(Sprite[] sprites, int startIndex, int count, string directory, string animationName)
+    AnimationClip GenerateAnimationClip(Sprite[] sprites, int startIndex, int count, string directory, string animationName, bool isLooping)
     {
         AnimationClip clip = new AnimationClip
         {
@@ -432,6 +444,13 @@ public class SpriteSheetAnimator : EditorWindow
 
         AnimationUtility.SetObjectReferenceCurve(clip, spriteBinding, spriteKeyFrames);
 
+        if (isLooping)
+        {
+            AnimationClipSettings settings = AnimationUtility.GetAnimationClipSettings(clip);
+            settings.loopTime = true;
+            AnimationUtility.SetAnimationClipSettings(clip, settings);
+        }
+
         string clipPath = Path.Combine(directory, $"{animationName}.anim");
         AssetDatabase.CreateAsset(clip, AssetDatabase.GenerateUniqueAssetPath(clipPath));
         AssetDatabase.Refresh();
@@ -445,6 +464,7 @@ public class SpriteSheetAnimator : EditorWindow
         public Texture2D SpriteSheet;
         public int RowCount = 1;
         public int ColumnCount = 1;
+        public bool IsLooping = false;
     }
 
     private class AnimationData
@@ -452,5 +472,6 @@ public class SpriteSheetAnimator : EditorWindow
         public string Name;
         public int StartFrame;
         public int EndFrame;
+        public bool IsLooping = false;
     }
 }
