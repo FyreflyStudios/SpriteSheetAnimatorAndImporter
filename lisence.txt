@@ -16,12 +16,12 @@ Modify, disassemble, decompile, or reverse engineer Sprite Sheet Animator and Im
 Use Sprite Sheet Animator and Importer in any way that violates applicable law or infringes upon the rights of others.
 4. Intellectual Property
 
-Sprite Sheet Animator and Importer remains the intellectual property of the Licensor. The Licensee does not acquire any ownership rights by purchasing or using [Your Product Name].
+Sprite Sheet Animator and Importer remains the intellectual property of the Licensor. The Licensee does not acquire any ownership rights by purchasing or using Sprite Sheet Animator and Importer.
 5. Term and Termination
 
 This Agreement is effective until terminated.
 The Licensor may terminate this Agreement if the Licensee breaches any of its terms.
-Upon termination, the Licensee must cease all use of [Your Product Name] and delete all copies.
+Upon termination, the Licensee must cease all use of Sprite Sheet Animator and Importer and delete all copies.
 6. Disclaimer of Warranties
 
 Sprite Sheet Animator and Importer is provided "as is" without warranty of any kind, express or implied.
