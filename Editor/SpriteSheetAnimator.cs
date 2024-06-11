@@ -31,6 +31,7 @@ public class SpriteSheetAnimator : EditorWindow
     private AnimatorController existingAnimatorController;
     private bool specifySavePath = false;
     private string savePath = "";
+    private AnimatorController templateAnimatorController;
 
     private List<MultipleSheetAnimationData> multipleSheetAnimations = new List<MultipleSheetAnimationData>();
 
@@ -89,6 +90,9 @@ public class SpriteSheetAnimator : EditorWindow
             animatorControllerName = EditorGUILayout.TextField("Animator Controller Name", animatorControllerName);
             createSubfolder = EditorGUILayout.Toggle("Create Subfolder", createSubfolder);
         }
+
+        EditorGUILayout.Space();
+        templateAnimatorController = (AnimatorController)EditorGUILayout.ObjectField("Template Animator Controller", templateAnimatorController, typeof(AnimatorController), false);
 
         if (useManualAnimations)
         {
@@ -163,6 +167,9 @@ public class SpriteSheetAnimator : EditorWindow
             animatorControllerName = EditorGUILayout.TextField("Animator Controller Name", animatorControllerName);
             createSubfolder = EditorGUILayout.Toggle("Create Subfolder", createSubfolder);
         }
+
+        EditorGUILayout.Space();
+        templateAnimatorController = (AnimatorController)EditorGUILayout.ObjectField("Template Animator Controller", templateAnimatorController, typeof(AnimatorController), false);
 
         if (GUILayout.Button("Generate Multiple Sheet Animations"))
         {
@@ -277,6 +284,11 @@ public class SpriteSheetAnimator : EditorWindow
             state.motion = clip;
         }
 
+        if (templateAnimatorController != null)
+        {
+            CopyParametersFromTemplate(controller, templateAnimatorController);
+        }
+
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
     }
@@ -321,6 +333,11 @@ public class SpriteSheetAnimator : EditorWindow
             state.motion = clip;
         }
 
+        if (templateAnimatorController != null)
+        {
+            CopyParametersFromTemplate(controller, templateAnimatorController);
+        }
+
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
     }
@@ -359,6 +376,11 @@ public class SpriteSheetAnimator : EditorWindow
             AnimationClip clip = GenerateAnimationClip(sprites, 0, sprites.Length, saveDirectory, animData.Name, animData.IsLooping);
             AnimatorState state = controller.layers[0].stateMachine.AddState(animData.Name);
             state.motion = clip;
+        }
+
+        if (templateAnimatorController != null)
+        {
+            CopyParametersFromTemplate(controller, templateAnimatorController);
         }
 
         AssetDatabase.SaveAssets();
@@ -406,6 +428,29 @@ public class SpriteSheetAnimator : EditorWindow
             }
             controllerPath = subFolderPath;
         }
+    }
+
+    void CopyParametersFromTemplate(AnimatorController targetController, AnimatorController templateController)
+    {
+        foreach (var param in templateController.parameters)
+        {
+            if (!HasParameter(targetController, param.name))
+            {
+                targetController.AddParameter(param.name, param.type);
+            }
+        }
+    }
+
+    bool HasParameter(AnimatorController controller, string paramName)
+    {
+        foreach (var param in controller.parameters)
+        {
+            if (param.name == paramName)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     Sprite[] SliceSpriteSheet(string filePath, int rows, int columns, Vector2 pivot)
