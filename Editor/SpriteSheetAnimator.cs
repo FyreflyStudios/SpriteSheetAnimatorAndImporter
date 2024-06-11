@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEditor;
@@ -191,9 +192,9 @@ public class SpriteSheetAnimator : EditorWindow
         sourceAnimatorController = (AnimatorController)EditorGUILayout.ObjectField("Source Animator Controller", sourceAnimatorController, typeof(AnimatorController), false);
         destinationAnimatorController = (AnimatorController)EditorGUILayout.ObjectField("Destination Animator Controller", destinationAnimatorController, typeof(AnimatorController), false);
 
-        if (GUILayout.Button("Transfer Parameters"))
+        if (GUILayout.Button("Transfer Parameters and Transitions"))
         {
-            TransferParameters();
+            TransferParametersAndTransitions();
         }
     }
 
@@ -461,7 +462,7 @@ public class SpriteSheetAnimator : EditorWindow
         }
     }
 
-    void TransferParameters()
+    void TransferParametersAndTransitions()
     {
         if (sourceAnimatorController == null || destinationAnimatorController == null)
         {
@@ -469,6 +470,7 @@ public class SpriteSheetAnimator : EditorWindow
             return;
         }
 
+        // Copy parameters
         foreach (var param in sourceAnimatorController.parameters)
         {
             if (!HasParameter(destinationAnimatorController, param.name))
@@ -477,7 +479,74 @@ public class SpriteSheetAnimator : EditorWindow
             }
         }
 
-        Debug.Log("Parameters transferred successfully.");
+        // Copy transitions
+        foreach (var layer in sourceAnimatorController.layers)
+        {
+            AnimatorStateMachine sourceStateMachine = layer.stateMachine;
+            AnimatorStateMachine destinationStateMachine = GetDestinationStateMachine(destinationAnimatorController, layer.name);
+
+            if (destinationStateMachine == null)
+            {
+                Debug.LogWarning($"Could not find or create state machine for layer: {layer.name}");
+                continue;
+            }
+
+            CopyTransitions(sourceStateMachine, destinationStateMachine);
+        }
+
+        Debug.Log("Parameters and transitions transferred successfully.");
+    }
+
+    AnimatorStateMachine GetDestinationStateMachine(AnimatorController destinationController, string layerName)
+    {
+        foreach (var layer in destinationController.layers)
+        {
+            if (layer.name == layerName)
+            {
+                return layer.stateMachine;
+            }
+        }
+
+        // If the layer doesn't exist, create it
+        AnimatorControllerLayer newLayer = new AnimatorControllerLayer
+        {
+            name = layerName,
+            stateMachine = new AnimatorStateMachine()
+        };
+        destinationController.AddLayer(newLayer);
+        return newLayer.stateMachine;
+    }
+
+    void CopyTransitions(AnimatorStateMachine sourceStateMachine, AnimatorStateMachine destinationStateMachine)
+    {
+        foreach (var state in sourceStateMachine.states)
+        {
+            AnimatorState destinationState = destinationStateMachine.states.FirstOrDefault(s => s.state.name == state.state.name).state;
+
+            if (destinationState == null)
+            {
+                destinationState = destinationStateMachine.AddState(state.state.name);
+            }
+
+            foreach (var transition in state.state.transitions)
+            {
+                AnimatorState destinationTargetState = destinationStateMachine.states.FirstOrDefault(s => s.state.name == transition.destinationState.name).state;
+
+                if (destinationTargetState == null)
+                {
+                    destinationTargetState = destinationStateMachine.AddState(transition.destinationState.name);
+                }
+
+                AnimatorStateTransition newTransition = destinationState.AddTransition(destinationTargetState);
+                newTransition.conditions = transition.conditions;
+                newTransition.hasExitTime = transition.hasExitTime;
+                newTransition.exitTime = transition.exitTime;
+                newTransition.duration = transition.duration;
+                newTransition.offset = transition.offset;
+                newTransition.interruptionSource = transition.interruptionSource;
+                newTransition.orderedInterruption = transition.orderedInterruption;
+            }
+        }
     }
 
     bool HasParameter(AnimatorController controller, string paramName)
