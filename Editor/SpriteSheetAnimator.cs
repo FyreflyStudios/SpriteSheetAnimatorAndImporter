@@ -492,6 +492,9 @@ public class SpriteSheetAnimator : EditorWindow
             }
 
             CopyTransitions(sourceStateMachine, destinationStateMachine);
+
+            // Copy AnyState transitions
+            CopyAnyStateTransitions(sourceStateMachine, destinationStateMachine);
         }
 
         Debug.Log("Parameters and transitions transferred successfully.");
@@ -546,6 +549,28 @@ public class SpriteSheetAnimator : EditorWindow
                 newTransition.interruptionSource = transition.interruptionSource;
                 newTransition.orderedInterruption = transition.orderedInterruption;
             }
+        }
+    }
+
+    void CopyAnyStateTransitions(AnimatorStateMachine sourceStateMachine, AnimatorStateMachine destinationStateMachine)
+    {
+        foreach (var transition in sourceStateMachine.anyStateTransitions)
+        {
+            AnimatorState destinationTargetState = destinationStateMachine.states.FirstOrDefault(s => s.state.name == transition.destinationState.name).state;
+
+            if (destinationTargetState == null)
+            {
+                destinationTargetState = destinationStateMachine.AddState(transition.destinationState.name);
+            }
+
+            AnimatorStateTransition newTransition = destinationStateMachine.AddAnyStateTransition(destinationTargetState);
+            newTransition.conditions = transition.conditions;
+            newTransition.hasExitTime = transition.hasExitTime;
+            newTransition.exitTime = transition.exitTime;
+            newTransition.duration = transition.duration;
+            newTransition.offset = transition.offset;
+            newTransition.interruptionSource = transition.interruptionSource;
+            newTransition.orderedInterruption = transition.orderedInterruption;
         }
     }
 
