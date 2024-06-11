@@ -307,7 +307,7 @@ public class SpriteSheetAnimator : EditorWindow
 
         if (templateAnimatorController != null)
         {
-            CopyParametersFromTemplate(controller, templateAnimatorController);
+            CopyParametersAndTransitionsFromTemplate(controller, templateAnimatorController);
         }
 
         AssetDatabase.SaveAssets();
@@ -356,7 +356,7 @@ public class SpriteSheetAnimator : EditorWindow
 
         if (templateAnimatorController != null)
         {
-            CopyParametersFromTemplate(controller, templateAnimatorController);
+            CopyParametersAndTransitionsFromTemplate(controller, templateAnimatorController);
         }
 
         AssetDatabase.SaveAssets();
@@ -401,7 +401,7 @@ public class SpriteSheetAnimator : EditorWindow
 
         if (templateAnimatorController != null)
         {
-            CopyParametersFromTemplate(controller, templateAnimatorController);
+            CopyParametersAndTransitionsFromTemplate(controller, templateAnimatorController);
         }
 
         AssetDatabase.SaveAssets();
@@ -451,7 +451,7 @@ public class SpriteSheetAnimator : EditorWindow
         }
     }
 
-    void CopyParametersFromTemplate(AnimatorController targetController, AnimatorController templateController)
+    void CopyParametersAndTransitionsFromTemplate(AnimatorController targetController, AnimatorController templateController)
     {
         foreach (var param in templateController.parameters)
         {
@@ -459,6 +459,23 @@ public class SpriteSheetAnimator : EditorWindow
             {
                 targetController.AddParameter(param.name, param.type);
             }
+        }
+
+        foreach (var layer in templateController.layers)
+        {
+            AnimatorStateMachine sourceStateMachine = layer.stateMachine;
+            AnimatorStateMachine destinationStateMachine = GetDestinationStateMachine(targetController, layer.name);
+
+            if (destinationStateMachine == null)
+            {
+                Debug.LogWarning($"Could not find or create state machine for layer: {layer.name}");
+                continue;
+            }
+
+            CopyTransitions(sourceStateMachine, destinationStateMachine);
+
+            // Copy AnyState transitions
+            CopyAnyStateTransitions(sourceStateMachine, destinationStateMachine);
         }
     }
 
@@ -608,7 +625,6 @@ public class SpriteSheetAnimator : EditorWindow
             newTransition.solo = transition.solo; // Added
         }
     }
-
 
     bool HasParameter(AnimatorController controller, string paramName)
     {
