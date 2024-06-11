@@ -10,7 +10,8 @@ public class SpriteSheetAnimator : EditorWindow
     private enum Tab
     {
         SingleSheet,
-        MultipleSheets
+        MultipleSheets,
+        AnimatorTransfer
     }
 
     private Tab currentTab = Tab.SingleSheet;
@@ -33,6 +34,9 @@ public class SpriteSheetAnimator : EditorWindow
     private string savePath = "";
     private AnimatorController templateAnimatorController;
 
+    private AnimatorController sourceAnimatorController;
+    private AnimatorController destinationAnimatorController;
+
     private List<MultipleSheetAnimationData> multipleSheetAnimations = new List<MultipleSheetAnimationData>();
 
     [MenuItem("Tools/Sprite Sheet Animator")]
@@ -43,7 +47,7 @@ public class SpriteSheetAnimator : EditorWindow
 
     void OnGUI()
     {
-        currentTab = (Tab)GUILayout.Toolbar((int)currentTab, new string[] { "Single Sheet", "Multiple Sheets" });
+        currentTab = (Tab)GUILayout.Toolbar((int)currentTab, new string[] { "Single Sheet", "Multiple Sheets", "Animator Transfer" });
 
         switch (currentTab)
         {
@@ -52,6 +56,9 @@ public class SpriteSheetAnimator : EditorWindow
                 break;
             case Tab.MultipleSheets:
                 DrawMultipleSheetsTab();
+                break;
+            case Tab.AnimatorTransfer:
+                DrawAnimatorTransferTab();
                 break;
         }
     }
@@ -174,6 +181,19 @@ public class SpriteSheetAnimator : EditorWindow
         if (GUILayout.Button("Generate Multiple Sheet Animations"))
         {
             GenerateMultipleSheetAnimations();
+        }
+    }
+
+    void DrawAnimatorTransferTab()
+    {
+        GUILayout.Label("Animator Transfer", EditorStyles.boldLabel);
+
+        sourceAnimatorController = (AnimatorController)EditorGUILayout.ObjectField("Source Animator Controller", sourceAnimatorController, typeof(AnimatorController), false);
+        destinationAnimatorController = (AnimatorController)EditorGUILayout.ObjectField("Destination Animator Controller", destinationAnimatorController, typeof(AnimatorController), false);
+
+        if (GUILayout.Button("Transfer Parameters"))
+        {
+            TransferParameters();
         }
     }
 
@@ -439,6 +459,25 @@ public class SpriteSheetAnimator : EditorWindow
                 targetController.AddParameter(param.name, param.type);
             }
         }
+    }
+
+    void TransferParameters()
+    {
+        if (sourceAnimatorController == null || destinationAnimatorController == null)
+        {
+            Debug.LogError("Source or Destination Animator Controller is null.");
+            return;
+        }
+
+        foreach (var param in sourceAnimatorController.parameters)
+        {
+            if (!HasParameter(destinationAnimatorController, param.name))
+            {
+                destinationAnimatorController.AddParameter(param.name, param.type);
+            }
+        }
+
+        Debug.Log("Parameters transferred successfully.");
     }
 
     bool HasParameter(AnimatorController controller, string paramName)
