@@ -470,6 +470,9 @@ public class SpriteSheetAnimator : EditorWindow
             return;
         }
 
+        // Clear existing parameters and transitions
+        ClearParametersAndTransitions(destinationAnimatorController);
+
         // Copy parameters
         foreach (var param in sourceAnimatorController.parameters)
         {
@@ -498,6 +501,30 @@ public class SpriteSheetAnimator : EditorWindow
         }
 
         Debug.Log("Parameters and transitions transferred successfully.");
+    }
+
+    void ClearParametersAndTransitions(AnimatorController controller)
+    {
+        // Clear parameters
+        foreach (var param in controller.parameters.ToList())
+        {
+            controller.RemoveParameter(param);
+        }
+
+        // Clear transitions for each layer
+        foreach (var layer in controller.layers)
+        {
+            var stateMachine = layer.stateMachine;
+
+            // Clear state transitions
+            foreach (var state in stateMachine.states)
+            {
+                state.state.transitions = new AnimatorStateTransition[0];
+            }
+
+            // Clear AnyState transitions
+            stateMachine.anyStateTransitions = new AnimatorStateTransition[0];
+        }
     }
 
     AnimatorStateMachine GetDestinationStateMachine(AnimatorController destinationController, string layerName)
