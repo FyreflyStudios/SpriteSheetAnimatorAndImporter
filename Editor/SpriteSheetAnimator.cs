@@ -25,6 +25,10 @@ public class SpriteSheetAnimator : EditorWindow
     private bool useManualAnimations = false;
     private List<AnimationData> animations = new List<AnimationData>();
     private bool useImageComponent = false;
+    private Vector2 singleSheetPivot = new Vector2(0.5f, 0.5f);
+
+    private bool useExistingAnimatorController = false;
+    private AnimatorController existingAnimatorController;
 
     private List<MultipleSheetAnimationData> multipleSheetAnimations = new List<MultipleSheetAnimationData>();
 
@@ -63,10 +67,21 @@ public class SpriteSheetAnimator : EditorWindow
         columnCount = EditorGUILayout.IntField("Number of Columns", columnCount);
         columnCount = Mathf.Max(1, columnCount);
 
+        singleSheetPivot = EditorGUILayout.Vector2Field("Pivot Point", singleSheetPivot);
+
         EditorGUILayout.Space();
-        controllerPath = EditorGUILayout.TextField("Controller Path", controllerPath);
-        animatorControllerName = EditorGUILayout.TextField("Animator Controller Name", animatorControllerName);
-        createSubfolder = EditorGUILayout.Toggle("Create Subfolder", createSubfolder);
+        useExistingAnimatorController = EditorGUILayout.Toggle("Use Existing Animator Controller", useExistingAnimatorController);
+
+        if (useExistingAnimatorController)
+        {
+            existingAnimatorController = (AnimatorController)EditorGUILayout.ObjectField("Animator Controller", existingAnimatorController, typeof(AnimatorController), false);
+        }
+        else
+        {
+            controllerPath = EditorGUILayout.TextField("Controller Path", controllerPath);
+            animatorControllerName = EditorGUILayout.TextField("Animator Controller Name", animatorControllerName);
+            createSubfolder = EditorGUILayout.Toggle("Create Subfolder", createSubfolder);
+        }
 
         if (useManualAnimations)
         {
@@ -110,6 +125,7 @@ public class SpriteSheetAnimator : EditorWindow
             animData.RowCount = Mathf.Max(1, animData.RowCount);
             animData.ColumnCount = EditorGUILayout.IntField("Number of Columns", animData.ColumnCount);
             animData.ColumnCount = Mathf.Max(1, animData.ColumnCount);
+            animData.Pivot = EditorGUILayout.Vector2Field("Pivot Point", animData.Pivot);
             animData.IsLooping = EditorGUILayout.Toggle("Looping", animData.IsLooping);
 
             if (GUILayout.Button("Remove"))
@@ -123,9 +139,18 @@ public class SpriteSheetAnimator : EditorWindow
         EditorGUILayout.Space();
 
         useImageComponent = EditorGUILayout.Toggle("Use Image Component", useImageComponent);
-        controllerPath = EditorGUILayout.TextField("Controller Path", controllerPath);
-        animatorControllerName = EditorGUILayout.TextField("Animator Controller Name", animatorControllerName);
-        createSubfolder = EditorGUILayout.Toggle("Create Subfolder", createSubfolder);
+        useExistingAnimatorController = EditorGUILayout.Toggle("Use Existing Animator Controller", useExistingAnimatorController);
+
+        if (useExistingAnimatorController)
+        {
+            existingAnimatorController = (AnimatorController)EditorGUILayout.ObjectField("Animator Controller", existingAnimatorController, typeof(AnimatorController), false);
+        }
+        else
+        {
+            controllerPath = EditorGUILayout.TextField("Controller Path", controllerPath);
+            animatorControllerName = EditorGUILayout.TextField("Animator Controller Name", animatorControllerName);
+            createSubfolder = EditorGUILayout.Toggle("Create Subfolder", createSubfolder);
+        }
 
         if (GUILayout.Button("Generate Multiple Sheet Animations"))
         {
@@ -205,7 +230,7 @@ public class SpriteSheetAnimator : EditorWindow
 
         string filePath = AssetDatabase.GetAssetPath(spriteSheet);
         CreateSubfolderIfNeeded();
-        var sprites = SliceSpriteSheet(filePath, rowCount, columnCount);
+        var sprites = SliceSpriteSheet(filePath, rowCount, columnCount, singleSheetPivot);
 
         if (sprites.Length != rowCount * columnCount)
         {
@@ -213,13 +238,7 @@ public class SpriteSheetAnimator : EditorWindow
             return;
         }
 
-        if (!Directory.Exists(controllerPath))
-        {
-            Directory.CreateDirectory(controllerPath);
-        }
-
-        string fullPath = Path.Combine(controllerPath, $"{animatorControllerName}.controller");
-        AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(fullPath);
+        AnimatorController controller = useExistingAnimatorController ? existingAnimatorController : CreateAnimatorController();
 
         foreach (var anim in animations)
         {
@@ -258,7 +277,7 @@ public class SpriteSheetAnimator : EditorWindow
 
         string filePath = AssetDatabase.GetAssetPath(spriteSheet);
         CreateSubfolderIfNeeded();
-        var sprites = SliceSpriteSheet(filePath, rowCount, columnCount);
+        var sprites = SliceSpriteSheet(filePath, rowCount, columnCount, singleSheetPivot);
 
         if (sprites.Length != rowCount * columnCount)
         {
@@ -266,13 +285,7 @@ public class SpriteSheetAnimator : EditorWindow
             return;
         }
 
-        if (!Directory.Exists(controllerPath))
-        {
-            Directory.CreateDirectory(controllerPath);
-        }
-
-        string fullPath = Path.Combine(controllerPath, $"{animatorControllerName}.controller");
-        AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(fullPath);
+        AnimatorController controller = useExistingAnimatorController ? existingAnimatorController : CreateAnimatorController();
 
         for (int i = 0; i < animationNames.Count; i++)
         {
@@ -306,13 +319,7 @@ public class SpriteSheetAnimator : EditorWindow
 
         CreateSubfolderIfNeeded();
 
-        if (!Directory.Exists(controllerPath))
-        {
-            Directory.CreateDirectory(controllerPath);
-        }
-
-        string fullPath = Path.Combine(controllerPath, $"{animatorControllerName}.controller");
-        AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(fullPath);
+        AnimatorController controller = useExistingAnimatorController ? existingAnimatorController : CreateAnimatorController();
 
         foreach (var animData in multipleSheetAnimations)
         {
@@ -323,7 +330,7 @@ public class SpriteSheetAnimator : EditorWindow
             }
 
             string filePath = AssetDatabase.GetAssetPath(animData.SpriteSheet);
-            var sprites = SliceSpriteSheet(filePath, animData.RowCount, animData.ColumnCount);
+            var sprites = SliceSpriteSheet(filePath, animData.RowCount, animData.ColumnCount, animData.Pivot);
 
             if (sprites.Length != animData.RowCount * animData.ColumnCount)
             {
@@ -340,6 +347,17 @@ public class SpriteSheetAnimator : EditorWindow
         AssetDatabase.Refresh();
     }
 
+    AnimatorController CreateAnimatorController()
+    {
+        if (!Directory.Exists(controllerPath))
+        {
+            Directory.CreateDirectory(controllerPath);
+        }
+
+        string fullPath = Path.Combine(controllerPath, $"{animatorControllerName}.controller");
+        return AnimatorController.CreateAnimatorControllerAtPath(fullPath);
+    }
+
     void CreateSubfolderIfNeeded()
     {
         if (createSubfolder)
@@ -353,7 +371,7 @@ public class SpriteSheetAnimator : EditorWindow
         }
     }
 
-    Sprite[] SliceSpriteSheet(string filePath, int rows, int columns)
+    Sprite[] SliceSpriteSheet(string filePath, int rows, int columns, Vector2 pivot)
     {
         if (string.IsNullOrEmpty(filePath))
         {
@@ -374,6 +392,7 @@ public class SpriteSheetAnimator : EditorWindow
         if (textureImporter != null)
         {
             textureImporter.spriteImportMode = SpriteImportMode.Multiple;
+            textureImporter.isReadable = true; // Ensure the texture is readable
 
             var spriteData = new List<SpriteMetaData>();
             float spriteWidth = spriteSheet.width / columns;
@@ -385,7 +404,7 @@ public class SpriteSheetAnimator : EditorWindow
                 {
                     SpriteMetaData metaData = new SpriteMetaData
                     {
-                        pivot = new Vector2(0.5f, 0.5f),
+                        pivot = pivot,
                         name = $"{Path.GetFileNameWithoutExtension(filePath)}_r{r}_c{c}",
                         rect = new Rect(c * spriteWidth, spriteSheet.height - (r + 1) * spriteHeight, spriteWidth, spriteHeight)
                     };
@@ -464,6 +483,7 @@ public class SpriteSheetAnimator : EditorWindow
         public Texture2D SpriteSheet;
         public int RowCount = 1;
         public int ColumnCount = 1;
+        public Vector2 Pivot = new Vector2(0.5f, 0.5f);
         public bool IsLooping = false;
     }
 
