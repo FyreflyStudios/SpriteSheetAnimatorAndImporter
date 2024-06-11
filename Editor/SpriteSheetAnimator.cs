@@ -575,6 +575,10 @@ public class SpriteSheetAnimator : EditorWindow
                 newTransition.offset = transition.offset;
                 newTransition.interruptionSource = transition.interruptionSource;
                 newTransition.orderedInterruption = transition.orderedInterruption;
+                newTransition.canTransitionToSelf = transition.canTransitionToSelf; // Added
+                newTransition.isExit = transition.isExit; // Added
+                newTransition.mute = transition.mute; // Added
+                newTransition.solo = transition.solo; // Added
             }
         }
     }
@@ -598,8 +602,13 @@ public class SpriteSheetAnimator : EditorWindow
             newTransition.offset = transition.offset;
             newTransition.interruptionSource = transition.interruptionSource;
             newTransition.orderedInterruption = transition.orderedInterruption;
+            newTransition.canTransitionToSelf = transition.canTransitionToSelf; // Added
+            newTransition.isExit = transition.isExit; // Added
+            newTransition.mute = transition.mute; // Added
+            newTransition.solo = transition.solo; // Added
         }
     }
+
 
     bool HasParameter(AnimatorController controller, string paramName)
     {
