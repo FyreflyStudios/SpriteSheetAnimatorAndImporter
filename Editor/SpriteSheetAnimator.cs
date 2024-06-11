@@ -29,6 +29,8 @@ public class SpriteSheetAnimator : EditorWindow
 
     private bool useExistingAnimatorController = false;
     private AnimatorController existingAnimatorController;
+    private bool specifySavePath = false;
+    private string savePath = "";
 
     private List<MultipleSheetAnimationData> multipleSheetAnimations = new List<MultipleSheetAnimationData>();
 
@@ -75,6 +77,11 @@ public class SpriteSheetAnimator : EditorWindow
         if (useExistingAnimatorController)
         {
             existingAnimatorController = (AnimatorController)EditorGUILayout.ObjectField("Animator Controller", existingAnimatorController, typeof(AnimatorController), false);
+            specifySavePath = EditorGUILayout.Toggle("Specify Save Path for Animations", specifySavePath);
+            if (specifySavePath)
+            {
+                savePath = EditorGUILayout.TextField("Save Path", savePath);
+            }
         }
         else
         {
@@ -144,6 +151,11 @@ public class SpriteSheetAnimator : EditorWindow
         if (useExistingAnimatorController)
         {
             existingAnimatorController = (AnimatorController)EditorGUILayout.ObjectField("Animator Controller", existingAnimatorController, typeof(AnimatorController), false);
+            specifySavePath = EditorGUILayout.Toggle("Specify Save Path for Animations", specifySavePath);
+            if (specifySavePath)
+            {
+                savePath = EditorGUILayout.TextField("Save Path", savePath);
+            }
         }
         else
         {
@@ -240,6 +252,8 @@ public class SpriteSheetAnimator : EditorWindow
 
         AnimatorController controller = useExistingAnimatorController ? existingAnimatorController : CreateAnimatorController();
 
+        string saveDirectory = GetSaveDirectory(controller);
+
         foreach (var anim in animations)
         {
             int adjustedStartFrame = Mathf.Max(0, anim.StartFrame - 1);
@@ -258,7 +272,7 @@ public class SpriteSheetAnimator : EditorWindow
                 continue;
             }
 
-            AnimationClip clip = GenerateAnimationClip(sprites, adjustedStartFrame, count, controllerPath, anim.Name, anim.IsLooping);
+            AnimationClip clip = GenerateAnimationClip(sprites, adjustedStartFrame, count, saveDirectory, anim.Name, anim.IsLooping);
             AnimatorState state = controller.layers[0].stateMachine.AddState(anim.Name);
             state.motion = clip;
         }
@@ -287,6 +301,8 @@ public class SpriteSheetAnimator : EditorWindow
 
         AnimatorController controller = useExistingAnimatorController ? existingAnimatorController : CreateAnimatorController();
 
+        string saveDirectory = GetSaveDirectory(controller);
+
         for (int i = 0; i < animationNames.Count; i++)
         {
             if (string.IsNullOrEmpty(animationNames[i])) continue;
@@ -300,7 +316,7 @@ public class SpriteSheetAnimator : EditorWindow
                 continue;
             }
 
-            AnimationClip clip = GenerateAnimationClip(sprites, spriteStartIndex, spriteCount, controllerPath, animationNames[i], animations[i].IsLooping);
+            AnimationClip clip = GenerateAnimationClip(sprites, spriteStartIndex, spriteCount, saveDirectory, animationNames[i], animations[i].IsLooping);
             AnimatorState state = controller.layers[0].stateMachine.AddState(animationNames[i]);
             state.motion = clip;
         }
@@ -321,6 +337,8 @@ public class SpriteSheetAnimator : EditorWindow
 
         AnimatorController controller = useExistingAnimatorController ? existingAnimatorController : CreateAnimatorController();
 
+        string saveDirectory = GetSaveDirectory(controller);
+
         foreach (var animData in multipleSheetAnimations)
         {
             if (animData.SpriteSheet == null)
@@ -338,7 +356,7 @@ public class SpriteSheetAnimator : EditorWindow
                 continue;
             }
 
-            AnimationClip clip = GenerateAnimationClip(sprites, 0, sprites.Length, controllerPath, animData.Name, animData.IsLooping);
+            AnimationClip clip = GenerateAnimationClip(sprites, 0, sprites.Length, saveDirectory, animData.Name, animData.IsLooping);
             AnimatorState state = controller.layers[0].stateMachine.AddState(animData.Name);
             state.motion = clip;
         }
@@ -356,6 +374,25 @@ public class SpriteSheetAnimator : EditorWindow
 
         string fullPath = Path.Combine(controllerPath, $"{animatorControllerName}.controller");
         return AnimatorController.CreateAnimatorControllerAtPath(fullPath);
+    }
+
+    string GetSaveDirectory(AnimatorController controller)
+    {
+        if (useExistingAnimatorController)
+        {
+            if (specifySavePath && !string.IsNullOrEmpty(savePath))
+            {
+                return savePath;
+            }
+            else
+            {
+                return Path.GetDirectoryName(AssetDatabase.GetAssetPath(controller));
+            }
+        }
+        else
+        {
+            return controllerPath;
+        }
     }
 
     void CreateSubfolderIfNeeded()
