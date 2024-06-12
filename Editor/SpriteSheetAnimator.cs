@@ -300,7 +300,7 @@ public class SpriteSheetAnimator : EditorWindow
                 continue;
             }
 
-            AnimationClip clip = GenerateAnimationClip(sprites.Skip(adjustedStartFrame).Take(count).Where(s => s != null).ToArray(), 0, count, saveDirectory, anim.Name, anim.IsLooping);
+            AnimationClip clip = GenerateAnimationClip(FilterEmptySprites(sprites.Skip(adjustedStartFrame).Take(count).ToArray()), saveDirectory, anim.Name, anim.IsLooping);
             AnimatorState state = controller.layers[0].stateMachine.AddState(anim.Name);
             state.motion = clip;
         }
@@ -349,7 +349,7 @@ public class SpriteSheetAnimator : EditorWindow
                 continue;
             }
 
-            AnimationClip clip = GenerateAnimationClip(sprites.Skip(spriteStartIndex).Take(spriteCount).Where(s => s != null).ToArray(), 0, spriteCount, saveDirectory, animationNames[i], animations[i].IsLooping);
+            AnimationClip clip = GenerateAnimationClip(FilterEmptySprites(sprites.Skip(spriteStartIndex).Take(spriteCount).ToArray()), saveDirectory, animationNames[i], animations[i].IsLooping);
             AnimatorState state = controller.layers[0].stateMachine.AddState(animationNames[i]);
             state.motion = clip;
         }
@@ -394,7 +394,7 @@ public class SpriteSheetAnimator : EditorWindow
                 continue;
             }
 
-            AnimationClip clip = GenerateAnimationClip(sprites.Where(s => s != null).ToArray(), 0, sprites.Length, saveDirectory, animData.Name, animData.IsLooping);
+            AnimationClip clip = GenerateAnimationClip(FilterEmptySprites(sprites), saveDirectory, animData.Name, animData.IsLooping);
             AnimatorState state = controller.layers[0].stateMachine.AddState(animData.Name);
             state.motion = clip;
         }
@@ -638,6 +638,23 @@ public class SpriteSheetAnimator : EditorWindow
         return false;
     }
 
+    bool IsSpriteEmpty(Sprite sprite)
+    {
+        if (sprite == null)
+        {
+            return true;
+        }
+
+        var texture = sprite.texture;
+        var pixels = texture.GetPixels((int)sprite.rect.x, (int)sprite.rect.y, (int)sprite.rect.width, (int)sprite.rect.height);
+        return pixels.All(p => p.a == 0);
+    }
+
+    Sprite[] FilterEmptySprites(Sprite[] sprites)
+    {
+        return sprites.Where(s => !IsSpriteEmpty(s)).ToArray();
+    }
+
     Sprite[] SliceSpriteSheet(string filePath, int rows, int columns, Vector2 pivot)
     {
         if (string.IsNullOrEmpty(filePath))
@@ -699,7 +716,7 @@ public class SpriteSheetAnimator : EditorWindow
         return sprites.ToArray();
     }
 
-    AnimationClip GenerateAnimationClip(Sprite[] sprites, int startIndex, int count, string directory, string animationName, bool isLooping)
+    AnimationClip GenerateAnimationClip(Sprite[] sprites, string directory, string animationName, bool isLooping)
     {
         AnimationClip clip = new AnimationClip
         {
@@ -716,14 +733,14 @@ public class SpriteSheetAnimator : EditorWindow
         List<ObjectReferenceKeyframe> spriteKeyFrames = new List<ObjectReferenceKeyframe>();
         float frameTime = 1.0f / clip.frameRate;
 
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < sprites.Length; i++)
         {
-            if ((startIndex + i) < sprites.Length && sprites[startIndex + i] != null)
+            if (sprites[i] != null && !IsSpriteEmpty(sprites[i]))
             {
                 spriteKeyFrames.Add(new ObjectReferenceKeyframe
                 {
                     time = i * frameTime,
-                    value = sprites[startIndex + i]
+                    value = sprites[i]
                 });
             }
         }
