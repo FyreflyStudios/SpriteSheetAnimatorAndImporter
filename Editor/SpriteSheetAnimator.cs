@@ -300,7 +300,7 @@ public class SpriteSheetAnimator : EditorWindow
                 continue;
             }
 
-            AnimationClip clip = GenerateAnimationClip(sprites, adjustedStartFrame, count, saveDirectory, anim.Name, anim.IsLooping);
+            AnimationClip clip = GenerateAnimationClip(sprites.Skip(adjustedStartFrame).Take(count).Where(s => s != null).ToArray(), 0, count, saveDirectory, anim.Name, anim.IsLooping);
             AnimatorState state = controller.layers[0].stateMachine.AddState(anim.Name);
             state.motion = clip;
         }
@@ -349,7 +349,7 @@ public class SpriteSheetAnimator : EditorWindow
                 continue;
             }
 
-            AnimationClip clip = GenerateAnimationClip(sprites, spriteStartIndex, spriteCount, saveDirectory, animationNames[i], animations[i].IsLooping);
+            AnimationClip clip = GenerateAnimationClip(sprites.Skip(spriteStartIndex).Take(spriteCount).Where(s => s != null).ToArray(), 0, spriteCount, saveDirectory, animationNames[i], animations[i].IsLooping);
             AnimatorState state = controller.layers[0].stateMachine.AddState(animationNames[i]);
             state.motion = clip;
         }
@@ -394,7 +394,7 @@ public class SpriteSheetAnimator : EditorWindow
                 continue;
             }
 
-            AnimationClip clip = GenerateAnimationClip(sprites, 0, sprites.Length, saveDirectory, animData.Name, animData.IsLooping);
+            AnimationClip clip = GenerateAnimationClip(sprites.Where(s => s != null).ToArray(), 0, sprites.Length, saveDirectory, animData.Name, animData.IsLooping);
             AnimatorState state = controller.layers[0].stateMachine.AddState(animData.Name);
             state.motion = clip;
         }
@@ -713,33 +713,41 @@ public class SpriteSheetAnimator : EditorWindow
             propertyName = useImageComponent ? "m_Sprite" : "m_Sprite"
         };
 
-        ObjectReferenceKeyframe[] spriteKeyFrames = new ObjectReferenceKeyframe[count];
+        List<ObjectReferenceKeyframe> spriteKeyFrames = new List<ObjectReferenceKeyframe>();
         float frameTime = 1.0f / clip.frameRate;
 
         for (int i = 0; i < count; i++)
         {
-            if ((startIndex + i) < sprites.Length)
+            if ((startIndex + i) < sprites.Length && sprites[startIndex + i] != null)
             {
-                spriteKeyFrames[i] = new ObjectReferenceKeyframe
+                spriteKeyFrames.Add(new ObjectReferenceKeyframe
                 {
                     time = i * frameTime,
                     value = sprites[startIndex + i]
-                };
+                });
             }
         }
 
-        AnimationUtility.SetObjectReferenceCurve(clip, spriteBinding, spriteKeyFrames);
-
-        if (isLooping)
+        // Set the keyframes only if there are valid keyframes to set
+        if (spriteKeyFrames.Count > 0)
         {
-            AnimationClipSettings settings = AnimationUtility.GetAnimationClipSettings(clip);
-            settings.loopTime = true;
-            AnimationUtility.SetAnimationClipSettings(clip, settings);
-        }
+            AnimationUtility.SetObjectReferenceCurve(clip, spriteBinding, spriteKeyFrames.ToArray());
 
-        string clipPath = Path.Combine(directory, $"{animationName}.anim");
-        AssetDatabase.CreateAsset(clip, AssetDatabase.GenerateUniqueAssetPath(clipPath));
-        AssetDatabase.Refresh();
+            if (isLooping)
+            {
+                AnimationClipSettings settings = AnimationUtility.GetAnimationClipSettings(clip);
+                settings.loopTime = true;
+                AnimationUtility.SetAnimationClipSettings(clip, settings);
+            }
+
+            string clipPath = Path.Combine(directory, $"{animationName}.anim");
+            AssetDatabase.CreateAsset(clip, AssetDatabase.GenerateUniqueAssetPath(clipPath));
+            AssetDatabase.Refresh();
+        }
+        else
+        {
+            Debug.LogWarning($"No valid keyframes found for animation '{animationName}'. Clip was not created.");
+        }
 
         return clip;
     }
