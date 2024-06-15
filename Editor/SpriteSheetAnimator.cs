@@ -16,6 +16,8 @@ public class SpriteSheetAnimator : EditorWindow
     }
 
     private Tab currentTab = Tab.SingleSheet;
+    private Vector2 singleSheetScrollPosition;
+    private Vector2 multipleSheetsScrollPosition;
 
     private Texture2D spriteSheet;
     private List<string> animationNames = new List<string>();
@@ -66,6 +68,8 @@ public class SpriteSheetAnimator : EditorWindow
 
     void DrawSingleSheetTab()
     {
+        singleSheetScrollPosition = GUILayout.BeginScrollView(singleSheetScrollPosition);
+
         GUILayout.Label("Sprite Sheet Animation Generator", EditorStyles.boldLabel);
 
         spriteSheet = (Texture2D)EditorGUILayout.ObjectField("Sprite Sheet", spriteSheet, typeof(Texture2D), false);
@@ -122,10 +126,14 @@ public class SpriteSheetAnimator : EditorWindow
                 GenerateAutomaticAnimations();
             }
         }
+
+        GUILayout.EndScrollView();
     }
 
     void DrawMultipleSheetsTab()
     {
+        multipleSheetsScrollPosition = GUILayout.BeginScrollView(multipleSheetsScrollPosition);
+
         GUILayout.Label("Multiple Sheets Animation Generator", EditorStyles.boldLabel);
 
         if (GUILayout.Button("Add Animation"))
@@ -183,6 +191,8 @@ public class SpriteSheetAnimator : EditorWindow
         {
             GenerateMultipleSheetAnimations();
         }
+
+        GUILayout.EndScrollView();
     }
 
     void DrawAnimatorTransferTab()
@@ -476,6 +486,9 @@ public class SpriteSheetAnimator : EditorWindow
 
             // Copy AnyState transitions
             CopyAnyStateTransitions(sourceStateMachine, destinationStateMachine);
+
+            // Copy State positions
+            CopyStatePositions(sourceStateMachine, destinationStateMachine);
         }
     }
 
@@ -499,7 +512,7 @@ public class SpriteSheetAnimator : EditorWindow
             }
         }
 
-        // Copy transitions
+        // Copy transitions and state positions
         foreach (var layer in sourceAnimatorController.layers)
         {
             AnimatorStateMachine sourceStateMachine = layer.stateMachine;
@@ -512,12 +525,21 @@ public class SpriteSheetAnimator : EditorWindow
             }
 
             CopyTransitions(sourceStateMachine, destinationStateMachine);
-
-            // Copy AnyState transitions
             CopyAnyStateTransitions(sourceStateMachine, destinationStateMachine);
+            CopyStatePositions(sourceStateMachine, destinationStateMachine);
+
+            // Copy default state
+            if (layer.stateMachine.defaultState != null)
+            {
+                var defaultState = destinationStateMachine.states.FirstOrDefault(s => s.state.name == layer.stateMachine.defaultState.name).state;
+                if (defaultState != null)
+                {
+                    destinationStateMachine.defaultState = defaultState;
+                }
+            }
         }
 
-        Debug.Log("Parameters and transitions transferred successfully.");
+        Debug.Log("Parameters, transitions, and state positions transferred successfully.");
     }
 
     void ClearParametersAndTransitions(AnimatorController controller)
@@ -623,6 +645,48 @@ public class SpriteSheetAnimator : EditorWindow
         destinationTransition.mute = sourceTransition.mute;
         destinationTransition.solo = sourceTransition.solo;
     }
+
+    void CopyStatePositions(AnimatorStateMachine sourceStateMachine, AnimatorStateMachine destinationStateMachine)
+    {
+        // Create a dictionary to map source state names to their positions
+        Dictionary<string, Vector3> sourceStatePositions = new Dictionary<string, Vector3>();
+        foreach (var sourceState in sourceStateMachine.states)
+        {
+            sourceStatePositions[sourceState.state.name] = sourceState.position;
+        }
+
+        // Apply positions to destination states
+        var destinationStates = destinationStateMachine.states;
+        for (int i = 0; i < destinationStates.Length; i++)
+        {
+            var destinationState = destinationStates[i];
+            if (sourceStatePositions.TryGetValue(destinationState.state.name, out var position))
+            {
+                destinationState.position = position;
+            }
+            else
+            {
+                destinationState.position = new Vector3(50 + i * 10, 50 + i * 10); // Offset position for unmatched states
+            }
+            destinationStates[i] = destinationState;
+        }
+
+        // Update the states in the destination state machine
+        destinationStateMachine.states = destinationStates;
+
+        // Copy positions for Entry and AnyState nodes
+        destinationStateMachine.entryPosition = sourceStateMachine.entryPosition;
+        destinationStateMachine.anyStatePosition = sourceStateMachine.anyStatePosition;
+
+        // Copy positions for Exit node if it exists
+        if (sourceStateMachine.exitPosition != Vector3.zero)
+        {
+            destinationStateMachine.exitPosition = sourceStateMachine.exitPosition;
+        }
+    }
+
+
+
 
     bool HasParameter(AnimatorController controller, string paramName)
     {
