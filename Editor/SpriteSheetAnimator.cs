@@ -572,7 +572,8 @@ public class SpriteSheetAnimator : EditorWindow
 
             if (destinationState == null)
             {
-                destinationState = destinationStateMachine.AddState(state.state.name);
+                Debug.LogWarning($"State '{state.state.name}' does not exist in the destination state machine. Skipping transition copy.");
+                continue;
             }
 
             foreach (var transition in state.state.transitions)
@@ -581,21 +582,12 @@ public class SpriteSheetAnimator : EditorWindow
 
                 if (destinationTargetState == null)
                 {
-                    destinationTargetState = destinationStateMachine.AddState(transition.destinationState.name);
+                    Debug.LogWarning($"Target state '{transition.destinationState.name}' for transition does not exist in the destination state machine. Skipping transition copy.");
+                    continue;
                 }
 
                 AnimatorStateTransition newTransition = destinationState.AddTransition(destinationTargetState);
-                newTransition.conditions = transition.conditions;
-                newTransition.hasExitTime = transition.hasExitTime;
-                newTransition.exitTime = transition.exitTime;
-                newTransition.duration = transition.duration;
-                newTransition.offset = transition.offset;
-                newTransition.interruptionSource = transition.interruptionSource;
-                newTransition.orderedInterruption = transition.orderedInterruption;
-                newTransition.canTransitionToSelf = transition.canTransitionToSelf; // Added
-                newTransition.isExit = transition.isExit; // Added
-                newTransition.mute = transition.mute; // Added
-                newTransition.solo = transition.solo; // Added
+                CopyTransitionSettings(transition, newTransition);
             }
         }
     }
@@ -608,22 +600,28 @@ public class SpriteSheetAnimator : EditorWindow
 
             if (destinationTargetState == null)
             {
-                destinationTargetState = destinationStateMachine.AddState(transition.destinationState.name);
+                Debug.LogWarning($"Target state '{transition.destinationState.name}' for AnyState transition does not exist in the destination state machine. Skipping transition copy.");
+                continue;
             }
 
             AnimatorStateTransition newTransition = destinationStateMachine.AddAnyStateTransition(destinationTargetState);
-            newTransition.conditions = transition.conditions;
-            newTransition.hasExitTime = transition.hasExitTime;
-            newTransition.exitTime = transition.exitTime;
-            newTransition.duration = transition.duration;
-            newTransition.offset = transition.offset;
-            newTransition.interruptionSource = transition.interruptionSource;
-            newTransition.orderedInterruption = transition.orderedInterruption;
-            newTransition.canTransitionToSelf = transition.canTransitionToSelf; // Added
-            newTransition.isExit = transition.isExit; // Added
-            newTransition.mute = transition.mute; // Added
-            newTransition.solo = transition.solo; // Added
+            CopyTransitionSettings(transition, newTransition);
         }
+    }
+
+    void CopyTransitionSettings(AnimatorStateTransition sourceTransition, AnimatorStateTransition destinationTransition)
+    {
+        destinationTransition.conditions = sourceTransition.conditions;
+        destinationTransition.hasExitTime = sourceTransition.hasExitTime;
+        destinationTransition.exitTime = sourceTransition.exitTime;
+        destinationTransition.duration = sourceTransition.duration;
+        destinationTransition.offset = sourceTransition.offset;
+        destinationTransition.interruptionSource = sourceTransition.interruptionSource;
+        destinationTransition.orderedInterruption = sourceTransition.orderedInterruption;
+        destinationTransition.canTransitionToSelf = sourceTransition.canTransitionToSelf;
+        destinationTransition.isExit = sourceTransition.isExit;
+        destinationTransition.mute = sourceTransition.mute;
+        destinationTransition.solo = sourceTransition.solo;
     }
 
     bool HasParameter(AnimatorController controller, string paramName)
