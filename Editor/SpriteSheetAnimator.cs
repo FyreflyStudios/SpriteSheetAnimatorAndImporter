@@ -104,8 +104,7 @@ public class SpriteSheetAnimator : EditorWindow
         }
 
         EditorGUILayout.Space();
-        templateAnimatorController = (AnimatorController)EditorGUILayout.ObjectField("Template Animator Controller", templateAnimatorController, typeof(AnimatorController), false);
-
+      
         if (useManualAnimations)
         {
             DisplayManualAnimations();
@@ -185,8 +184,7 @@ public class SpriteSheetAnimator : EditorWindow
         }
 
         EditorGUILayout.Space();
-        templateAnimatorController = (AnimatorController)EditorGUILayout.ObjectField("Template Animator Controller", templateAnimatorController, typeof(AnimatorController), false);
-
+      
         if (GUILayout.Button("Generate Multiple Sheet Animations"))
         {
             GenerateMultipleSheetAnimations();
@@ -315,14 +313,10 @@ public class SpriteSheetAnimator : EditorWindow
             state.motion = clip;
         }
 
-        if (templateAnimatorController != null)
-        {
-            CopyParametersAndTransitionsFromTemplate(controller, templateAnimatorController);
-        }
-
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
     }
+
 
     void GenerateAutomaticAnimations()
     {
@@ -362,11 +356,6 @@ public class SpriteSheetAnimator : EditorWindow
             AnimationClip clip = GenerateAnimationClip(FilterEmptySprites(sprites.Skip(spriteStartIndex).Take(spriteCount).ToArray()), saveDirectory, animationNames[i], animations[i].IsLooping);
             AnimatorState state = controller.layers[0].stateMachine.AddState(animationNames[i]);
             state.motion = clip;
-        }
-
-        if (templateAnimatorController != null)
-        {
-            CopyParametersAndTransitionsFromTemplate(controller, templateAnimatorController);
         }
 
         AssetDatabase.SaveAssets();
@@ -409,14 +398,10 @@ public class SpriteSheetAnimator : EditorWindow
             state.motion = clip;
         }
 
-        if (templateAnimatorController != null)
-        {
-            CopyParametersAndTransitionsFromTemplate(controller, templateAnimatorController);
-        }
-
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
     }
+
 
     AnimatorController CreateAnimatorController()
     {
